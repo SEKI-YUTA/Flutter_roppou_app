@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_js/flutter_js.dart';
+import 'package:roppou_app/test_detail.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 // import 'dart:js';
@@ -90,6 +91,21 @@ JSON.stringify(data);
                           }),
                     ),
                     scrollButton(),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                            MaterialPageRoute(builder: (BuildContext context) {
+                          return TestDetail();
+                        }));
+                      },
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        child: Hero(
+                            tag: "test_anim",
+                            child: Image.network("https://picsum.photos/200")),
+                      ),
+                    ),
                   ],
                 );
               },

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_js/flutter_js.dart';
@@ -12,13 +13,36 @@ class MainPage extends StatefulWidget {
   _MainPageState createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage>
+    with SingleTickerProviderStateMixin {
   dynamic _fetchedData;
   final JavascriptRuntime javascriptRuntime = getJavascriptRuntime();
+  final ScrollController _scrollController = ScrollController();
+  AnimationController? _controller;
+  Animation<double>? _sizeAnimation;
+
   @override
   void initState() {
     super.initState();
     getData();
+    _controller =
+        AnimationController(vsync: this, duration: Duration(milliseconds: 500));
+    _sizeAnimation = TweenSequence(<TweenSequenceItem<double>>[
+      TweenSequenceItem(tween: Tween(begin: 10, end: 20), weight: 20),
+      // TweenSequenceItem(tween: Tween(begin: 30, end: 10), weight: 10),
+    ]).animate(_controller!);
+
+    _controller?.addListener(() {
+      // print(_controller?.value);
+      print(_sizeAnimation?.value);
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _controller?.dispose();
+    _scrollController.dispose();
   }
 
   void getData() async {
@@ -48,26 +72,79 @@ JSON.stringify(data);
   Widget build(BuildContext context) {
     return Center(
       child: _fetchedData == null
-          ? Text('Getting data')
-          : ListView.builder(
-              shrinkWrap: true,
-              itemBuilder: (BuildContext context, int index) {
-                if (index <= 4) {
-                  return Container();
-                }
-                return Card(
-                  elevation: 3,
-                  child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(10),
-                      child: InkWell(
-                        onTap: () {
-                          launch(_fetchedData[index]['url']);
-                        },
-                        child: Text('${_fetchedData[index]['title']}'),
-                      )),
+          ? const Text('Getting data')
+          : AnimatedBuilder(
+              animation: _controller!,
+              builder: (BuildContext context, _) {
+                return Stack(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                          controller: _scrollController,
+                          shrinkWrap: true,
+                          itemBuilder: (BuildContext context, int index) {
+                            if (index <= 4) {
+                              return Container();
+                            }
+                            return itemCard(index);
+                          }),
+                    ),
+                    scrollButton(),
+                  ],
                 );
-              }),
+              },
+            ),
+    );
+  }
+
+  Positioned scrollButton() {
+    return Positioned(
+      right: 30,
+      bottom: 30,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onLongPress: () {
+              print('Long Press');
+              _controller?.forward();
+            },
+            onLongPressUp: () {
+              print('Long Press up');
+              _controller?.reverse();
+            },
+            onTap: () {
+              _scrollController.animateTo(
+                  _scrollController.position.minScrollExtent,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeIn);
+            },
+            child: const Icon(
+              Icons.arrow_drop_up,
+              size: 50,
+            ),
+          ),
+          Text(
+            '一番上までスクロール',
+            style: TextStyle(fontSize: _sizeAnimation?.value),
+          )
+        ],
+      ),
+    );
+  }
+
+  Card itemCard(int index) {
+    return Card(
+      elevation: 3,
+      child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(10),
+          child: InkWell(
+            onTap: () {
+              launch(_fetchedData[index]['url']);
+            },
+            child: Text('${_fetchedData[index]['title']}'),
+          )),
     );
   }
 }
